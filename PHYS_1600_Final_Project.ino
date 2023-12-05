@@ -3,14 +3,24 @@
 uint8_t laserPin = 4;
 uint8_t redLEDPin = 1;
 uint8_t greenLEDPin = 2;
-uint8_t buttonPin = 3;
+uint8_t buttonPin = 7;
+uint8_t rgbRedPin = 3;
+uint8_t rgbBluePin = 6;
+uint8_t rgbGreenPin = 5;
 uint8_t buttonState = LOW;
 uint8_t oldButtonState = LOW;
 bool gameState = false;
 bool safeState = true;
 bool moveState = true;
 bool gameComplete = false;
+int PWMFreq = 5000;
+int PWMChannelB = 0;
+int PWMChannelG = 1;
+int PWMChannelR = 2;
+int PWMResolution = 10;
 rgb_lcd lcd;
+
+int MAX_DUTY_CYCLE = 1023;
 
 void setup() {
   Serial.begin(9600);
@@ -19,6 +29,12 @@ void setup() {
   lcd.print("Press the Button to Begin");
   pinMode(redLEDPin,OUTPUT);
   pinMode(greenLEDPin,OUTPUT);
+  ledcSetup(PWMChannelB, PWMFreq, PWMResolution);
+  ledcAttachPin(rgbBluePin, PWMChannelB);
+  ledcSetup(PWMChannelG, PWMFreq, PWMResolution);
+  ledcAttachPin(rgbGreenPin, PWMChannelG);
+  ledcSetup(PWMChannelR, PWMFreq, PWMResolution);
+  ledcAttachPin(rgbRedPin, PWMChannelR);
 }
 
 bool scanMovement()
@@ -54,7 +70,7 @@ bool scanMovement()
   avg2 = total2 / 100;
   Serial.println(avg1);
   Serial.println(avg2);
-  if(abs(avg2 - avg1) > 30){
+  if(abs(avg2 - avg1) > 50){
     safeState = false;
     Serial.println("LOL");
   }
@@ -98,7 +114,7 @@ void gameInProgress()
       digitalWrite(greenLEDPin, HIGH);
       digitalWrite(redLEDPin, LOW);
       lcd.print("GO GO GO!!!");
-      int randomMoveTime = rand() % 3 + 2;
+      int randomMoveTime = rand() % 3;
       delay(randomMoveTime * 1000);
       gameCompletionCheck();
       moveState = false;
@@ -111,8 +127,6 @@ void gameInProgress()
       scanMovement();
       delay(1000);
       scanMovement();
-      delay(1000);
-      scanMovement();
       moveState = true;
     }
   }
@@ -121,6 +135,7 @@ void gameInProgress()
     digitalWrite(greenLEDPin,LOW);
     lcd.clear();
     lcd.print("You Died");
+    ledcWrite(PWMChannelR,1000);
     delay(10000);
     gameState = false;
     safeState = true;
@@ -136,6 +151,7 @@ void gameInProgress()
     digitalWrite(greenLEDPin,LOW);
     lcd.clear();
     lcd.print("You got Lucky!!!");
+    ledcWrite(PWMChannelG,1000);
     delay(10000);
     gameState = false;
     safeState = true;
@@ -151,6 +167,12 @@ void gameInProgress()
 void loop() {
   if(gameState == false){
     lcd.scrollDisplayLeft();
+    int dutyB = rand() % 1023;
+    int dutyG = rand() % 1023;
+    int dutyR = rand() % 1023;
+    ledcWrite(PWMChannelB, dutyB);
+    ledcWrite(PWMChannelG, dutyG);
+    ledcWrite(PWMChannelR, dutyR);    
     delay(500);
     buttonState = digitalRead(buttonPin);
     if(oldButtonState == LOW && buttonState == HIGH)
@@ -164,10 +186,25 @@ void loop() {
   else{
     lcd.clear();
     lcd.print("READY?");
-    delay(3000);
+    ledcWrite(PWMChannelR, 1000);
+    delay(1000);
+    ledcWrite(PWMChannelR, 0);
+    ledcWrite(PWMChannelB, 0);
+    ledcWrite(PWMChannelG, 951);
+    ledcWrite(PWMChannelR, 700);
+    delay(1000);
+    ledcWrite(PWMChannelB, 0);
+    ledcWrite(PWMChannelG, 0);
+    ledcWrite(PWMChannelR, 0);
+    ledcWrite(PWMChannelG, 1000);
+    delay(1000);
+    ledcWrite(PWMChannelB, 0);
+    ledcWrite(PWMChannelG, 0);
+    ledcWrite(PWMChannelR, 0);
     gameInProgress();
   }
 }
+
   
   
   
